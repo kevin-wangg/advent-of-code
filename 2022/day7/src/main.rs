@@ -91,17 +91,27 @@ fn main() {
             }
         }
     }
-    let ans: usize = directories.values()
+    let required = 30000000;
+    let total = 70000000;
+    let mut sizes: Vec<usize> = directories.values()
         .map(|d| {
             match d.dirs_size {
                 Size::Known(s) => s,
                 Size::Unknown => panic!("Unknown directory size")
             }
         })
-        .filter(|&sz| {
-            sz <= 100000
-        })
-        .sum();
+        .collect();
+    sizes.sort();
+    let unused = total - sizes.last().unwrap();
+    println!("{:?}", sizes);
+    let mut ans = 0;
+    let needed = required - unused;
+    for &s in &sizes[0..sizes.len() - 1] {
+        if s >= needed {
+            ans = s;
+            break;
+        }
+    }
     println!("ans: {}", ans);
 }
 
