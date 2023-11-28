@@ -40,7 +40,7 @@ fn main() {
             s
         })
         .collect();
-    let ans = rec(&valves, &mut avail_valves, &dists, "AA", 30, 0);
+    let ans = rec(&valves, &mut avail_valves, &dists, "AA", 26, 0, false);
     println!("ans {}", ans);
 }
 
@@ -50,16 +50,22 @@ fn rec(
     dists: &HashMap<String, HashMap<String, i32>>,
     cur: &str,
     time_left: i32,
-    acc: i32
+    acc: i32,
+    is_elephant: bool
 ) -> i32 {
-    println!("valves {:?} time {} acc {} cur {}", avail_valves, time_left, acc, cur);
+    // println!("valves {:?} time {} acc {} cur {}", avail_valves, time_left, acc, cur);
     // println!("cur {}", cur);
     let mut ret = acc;
+
+    if !is_elephant {
+        // I stop, elephant goes
+        ret = ret.max(rec(valves, avail_valves, dists, "AA", 26, acc, true));
+    }
     for v in avail_valves.clone() {
         let dist = dists[cur][v];
         if time_left - dist - 1 >= 0 {
             avail_valves.remove(v);
-            ret = ret.max(rec(valves, avail_valves, dists, v, time_left - dist - 1, acc + (valves[v].flow_rate * (time_left - dist - 1))));
+            ret = ret.max(rec(valves, avail_valves, dists, v, time_left - dist - 1, acc + (valves[v].flow_rate * (time_left - dist - 1)), is_elephant));
             avail_valves.insert(v);
         }
     }
