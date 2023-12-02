@@ -1,6 +1,5 @@
 use std::collections::HashSet;
 use std::{env, fs};
-use std::{thread, time};
 
 const WIDTH: i32 = 7;
 
