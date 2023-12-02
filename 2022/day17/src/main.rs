@@ -1,193 +1,216 @@
+use std::collections::HashSet;
 use std::{env, fs};
+use std::{thread, time};
 
-const WIDTH: usize = 7;
+const WIDTH: i32 = 7;
+
+#[derive(Clone, Debug)]
+struct Rock {
+    pos: Vec<(i32, i32)>,
+}
+
+impl Rock {
+    fn new(pos: Vec<(i32, i32)>) -> Self {
+        Rock { pos }
+    }
+
+    fn move_down(&self) -> Self {
+        Rock {
+            pos: self.pos.iter().map(|&(x, y)| (x, y - 1)).collect(),
+        }
+    }
+
+    fn move_left(&self) -> Self {
+        Rock {
+            pos: self.pos.iter().map(|&(x, y)| (x - 1, y)).collect(),
+        }
+    }
+
+    fn move_right(&self) -> Self {
+        Rock {
+            pos: self.pos.iter().map(|&(x, y)| (x + 1, y)).collect(),
+        }
+    }
+}
 
 struct Cave {
-    cave: Vec<Vec<char>>,
-    height: i32
+    rock_ind: usize,
+    cur_rock: Option<Rock>,
+    jets_ind: usize,
+    jets: Vec<char>,
+    occupied: HashSet<(i32, i32)>,
+    height: i32,
 }
 
-fn print_cave(cave: &Cave) {
-    println!("Hello");
-    let start = if cave.cave.len() < 20 {
-        0
-    } else {
-        cave.cave.len() - 20
-    };
-    for i in (start..cave.cave.len()).rev() {
-        print!("{} ", i);
-        for j in 0..cave.cave[i].len() {
-            print!("{}", cave.cave[i][j]);
+impl Cave {
+    fn new(jets: String) -> Self {
+        Cave {
+            rock_ind: 0,
+            cur_rock: None,
+            jets_ind: 0,
+            jets: jets.chars().collect(),
+            occupied: HashSet::new(),
+            height: 0,
         }
-        println!();
     }
-    println!();
-}
 
-fn check_valid(grid: &Vec<Vec<char>>, coords: &Vec<(i32, i32)>) -> bool {
-    for c in coords {
-        if c.0 >= 0 && c.1 >= 0 {
-            let y = c.0 as usize;
-            let x = c.1 as usize;
-            if y < grid.len() && x < WIDTH {
-                if grid[y][x] != '.' {
-                    return false;
-                }
-            } else {
-                return false;
-            }
+    #[allow(dead_code)]
+    fn print(&self, full: bool) {
+        let start = if full {
+            0
         } else {
-            return false;
-        }
-    }
-    return true;
-}
-
-fn draw_rock(grid: &mut Vec<Vec<char>>, coord: &Vec<(i32, i32)>) {
-    for c in coord {
-        let y = c.0 as usize;
-        let x = c.1 as usize;
-        grid[y][x] = '#';
-    }
-}
-
-fn do_moves(moves: Vec<char>) -> Cave {
-    let mut cave = Cave {
-        cave: vec![vec!['.'; WIDTH]; 10],
-        height: -1,
-    };
-    let mut rock = 0;
-    let mut rock_cnt = 0;
-    let mut c_ind = 0;
-
-    while rock_cnt < 2022 {
-        println!("{}", rock_cnt);
-        if cave.cave.len() as i32 - cave.height < 10 {
-            cave.cave.append(&mut vec![vec!['.'; 7]; 10]);
-        }
-        assert!(rock <= 4);
-        let (mut coords, mut height) = match rock {
-            0 => {
-                // Horizontal rock
-                // y, x is the left most point of the rock
-                let y = cave.height + 4;
-                let x = 2;
-                let coords = vec![
-                    (y, x), (y, x + 1), (y, x + 2), (y, x + 3)
-                ];
-                (coords, y)
-            },
-            1 => {
-                // Cross shape rock
-                // y, x is the center of the rock
-                let y = cave.height + 5;
-                let x = 3;
-                let coords = vec![
-                    (y, x), (y + 1, x), (y, x - 1), (y, x + 1), (y - 1, x)
-                ];
-                (coords, y + 1)
-            },
-            2 => {
-                // Backwards L shape rock
-                // y, x is the corner of the rock
-                let y = cave.height + 4;
-                let x = 4;
-                let coords = vec![
-                    (y, x), (y + 1, x), (y + 2, x), (y, x - 2), (y, x - 1)
-                ];
-                (coords, y + 2)
-            },
-            3 => {
-                // Vertical rock
-                // y, x is the bottom of the rock
-                let y = cave.height + 4;
-                let x = 2;
-                let coords = vec![
-                    (y, x), (y + 1, x), (y + 2, x), (y + 3, x)
-                ];
-                (coords, y + 3)
-            },
-            4 => {
-                // Square rock
-                // y, x is the bottom left corner
-                let y = cave.height + 4;
-                let x = 2;
-                let coords = vec![
-                    (y, x), (y, x + 1), (y + 1, x), (y + 1, x + 1)
-                ];
-                (coords, y + 1)
-            },
-            _ => panic!("Invalid rock type")
+            i32::max(0, self.height - 50)
         };
 
-        loop {
-            println!("{:?} {}", coords, moves[c_ind]);
-            if moves[c_ind] == '<' {
-                // move left
-                let moved_coords = coords.iter().map(
-                    |c| {
-                        (c.0, c.1 - 1)
-                    }
-                ).collect();
-                if check_valid(&cave.cave, &moved_coords) {
-                    coords = moved_coords;
-                }
+        for i in (start..=self.height + 10).rev() {
+            print!("{}\t", i);
+            if i == 0 {
+                print!("+");
             } else {
-                // move right
-                let moved_coords = coords.iter().map(
-                    |c| {
-                        (c.0, c.1 + 1)
+                print!("|");
+            }
+            for j in 0..WIDTH {
+                if i == 0 {
+                    print!("-");
+                    continue;
+                }
+                if let Some(ref rock) = self.cur_rock {
+                    if rock.pos.contains(&(j, i)) {
+                        print!("@");
+                        continue;
                     }
-                ).collect();
-                if check_valid(&cave.cave, &moved_coords) {
-                    coords = moved_coords;
+                }
+                if self.occupied.contains(&(j, i)){
+                    print!("#");
+                } else {
+                    print!(".");
                 }
             }
-            c_ind += 1;
-            if c_ind == moves.len() {
-                c_ind = 0;
-            }
-            // Check if rock can move down
-            let moved_coords = coords.iter().map(
-                |c| {
-                    (c.0 - 1, c.1)
-                }
-            ).collect();
-            if check_valid(&cave.cave, &moved_coords) {
-                coords = moved_coords;
-                height -= 1;
+            if i == 0 {
+                print!("+");
             } else {
-                break;
+                print!("|");
             }
-            // print_cave(&cave);
-            // let mut s = String::from("");
-            // std::io::stdin().read_line(&mut s);
+            println!();
         }
-
-        cave.height = i32::max(cave.height, height);
-        rock = (rock + 1) % 5;
-        rock_cnt += 1;
-        draw_rock(&mut cave.cave, &coords);
-        // print_cave(&cave);
-        // println!("{}", cave.height);
-        // let mut s = String::from("");
-        // std::io::stdin().read_line(&mut s);
     }
-    cave
+
+    fn make_rock(&mut self) {
+        let x = 2;
+        let y = self.height + 4;
+        let pos = vec![
+            // horizontal line
+            vec![(x, y), (x + 1, y), (x + 2, y), (x + 3, y)],
+            // plus
+            vec![
+                (x, y + 1),
+                (x + 1, y + 1),
+                (x + 2, y + 1),
+                (x + 1, y + 2),
+                (x + 1, y),
+            ],
+            // backwards L
+            vec![
+                (x, y),
+                (x + 1, y),
+                (x + 2, y),
+                (x + 2, y + 1),
+                (x + 2, y + 2),
+            ],
+            // vertical line
+            vec![(x, y), (x, y + 1), (x, y + 2), (x, y + 3)],
+            // square shape
+            vec![(x, y), (x + 1, y), (x + 1, y + 1), (x, y + 1)],
+        ];
+        self.cur_rock = Some(Rock::new(pos[self.rock_ind].clone()));
+        self.rock_ind = (self.rock_ind + 1) % 5;
+    }
+
+    fn get_dir(&mut self) -> char {
+        let c = self.jets[self.jets_ind];
+        self.jets_ind = (self.jets_ind + 1) % self.jets.len();
+        c
+    }
+
+    #[allow(dead_code)]
+    fn wait(&self) {
+        if self.height < 2675 {
+            return;
+        }
+        let mut s = String::new();
+        let _ = std::io::stdin().read_line(&mut s);
+    }
+    fn drop_rock(&mut self) {
+        // self.print();
+        self.make_rock();
+        while self.step() {}
+        self.height = self.calculate_height();
+    }
+
+    fn calculate_height(&self) -> i32 {
+        self.occupied.iter().fold(0, |acc, &(_, y)| acc.max(y))
+    }
+
+    fn collision(&self, rock: &Rock) -> bool {
+        for p in &rock.pos {
+            if p.0 < 0 || p.0 >= WIDTH || p.1 <= 0 {
+                // out of bounds
+                return true;
+            }
+            if self.occupied.contains(p) {
+                // hit other rock
+                return true;
+            }
+        }
+        return false;
+    }
+
+    fn step(&mut self) -> bool {
+        let dir = self.get_dir();
+        // println!("dir {}", dir);
+        // self.print(false);
+        // thread::sleep(time::Duration::from_millis(200));
+        // self.wait();
+        if dir == '<' {
+            let moved = self.cur_rock.clone().unwrap().move_left();
+            if !self.collision(&moved) {
+                self.cur_rock = Some(moved);
+            }
+        } else if dir == '>' {
+            let moved = self.cur_rock.clone().unwrap().move_right();
+            if !self.collision(&moved) {
+                self.cur_rock = Some(moved);
+            }
+        } else {
+            panic!("Invalid direction");
+        }
+        // self.print(false);
+        // thread::sleep(time::Duration::from_millis(200));
+        // self.wait();
+
+        let moved = self.cur_rock.clone().unwrap().move_down();
+        if !self.collision(&moved) {
+            self.cur_rock = Some(moved);
+        } else {
+            self.occupied.extend(self.cur_rock.clone().unwrap().pos.iter());
+            // println!("{:?}", self.occupied);
+            // self.cur_rock = None;
+            // return false to indicate rock has come to rest
+            return false;
+        }
+        // return true to keep going
+        true
+    }
 }
 
 fn main() {
-    let path = env::args().nth(1).unwrap_or("input.txt".into());
-    let input = fs::read_to_string(path).expect("File should exist");
-    let cave = do_moves( input.chars().collect());
-    println!("ans {}", cave.height + 1);
-    let mut height = 0;
-    print_cave(&cave);
-    for (h, row) in cave.cave.iter().enumerate().rev() {
-        if row.contains(&'#') {
-            height = h;
-            break;
-        }
+    let path = env::args().nth(1).unwrap_or("input.txt".to_string());
+    let input = fs::read_to_string(path).expect("File should exist").trim().to_string();
+    let rock_cnt = 2022;
+    let mut cave = Cave::new(input.clone());
+    for _ in 0..rock_cnt {
+        cave.drop_rock();
     }
-    println!("{height}");
+    // cave.print(true);
+    println!("ans {}", cave.height);
 }
