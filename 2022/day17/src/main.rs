@@ -1,5 +1,7 @@
 use std::{env, fs};
 
+const WIDTH: usize = 7;
+
 struct Cave {
     cave: Vec<Vec<char>>,
     height: i32
@@ -7,7 +9,13 @@ struct Cave {
 
 fn print_cave(cave: &Cave) {
     println!("Hello");
-    for i in 0..cave.cave.len() {
+    let start = if cave.cave.len() < 20 {
+        0
+    } else {
+        cave.cave.len() - 20
+    };
+    for i in (start..cave.cave.len()).rev() {
+        print!("{} ", i);
         for j in 0..cave.cave[i].len() {
             print!("{}", cave.cave[i][j]);
         }
@@ -16,165 +24,170 @@ fn print_cave(cave: &Cave) {
     println!();
 }
 
-fn process(cave: &mut Cave, moves: Vec<char>) {
-    let mut rock = 0;
-    let mut c_ind = 0;
-
-    let check_valid = |cave: Vec<Vec<char>>, coords: &Vec<(usize, usize)>| {
-        for c in coords {
-            if c.0 >= 0 && c.0 < cave.len() && c.1 >= 0 && c.1 <= 7 {
-                continue;
-            } 
+fn check_valid(grid: &Vec<Vec<char>>, coords: &Vec<(i32, i32)>) -> bool {
+    for c in coords {
+        if c.0 >= 0 && c.1 >= 0 {
+            let y = c.0 as usize;
+            let x = c.1 as usize;
+            if y < grid.len() && x < WIDTH {
+                if grid[y][x] != '.' {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        } else {
             return false;
         }
-        return true;
-    };
+    }
+    return true;
+}
 
-    while c_ind < moves.len() && c_ind < 10 {
+fn draw_rock(grid: &mut Vec<Vec<char>>, coord: &Vec<(i32, i32)>) {
+    for c in coord {
+        let y = c.0 as usize;
+        let x = c.1 as usize;
+        grid[y][x] = '#';
+    }
+}
+
+fn do_moves(moves: Vec<char>) -> Cave {
+    let mut cave = Cave {
+        cave: vec![vec!['.'; WIDTH]; 10],
+        height: -1,
+    };
+    let mut rock = 0;
+    let mut rock_cnt = 0;
+    let mut c_ind = 0;
+
+    while rock_cnt < 2022 {
+        println!("{}", rock_cnt);
         if cave.cave.len() as i32 - cave.height < 10 {
             cave.cave.append(&mut vec![vec!['.'; 7]; 10]);
         }
         assert!(rock <= 4);
-        match rock {
+        let (mut coords, mut height) = match rock {
             0 => {
-                // horizontal rock
+                // Horizontal rock
                 // y, x is the left most point of the rock
-                let mut y = (cave.height + 4) as usize;
-                let mut x = 2 as usize;
-
-                'outer: loop {
-                    if moves[c_ind] == '<' {
-                        // move left
-                        // check if moving left doesn't hit wall and doesn't hit rock
-                        if x > 0 && cave.cave[y][x - 1] == '.' {
-                            x -= 1;
-                        }
-                    } else {
-                        // move right
-                        if x < 3 && cave.cave[y][x + 4] == '.' {
-                            x += 1;
-                        }
-                    }
-
-                    // Check if rock can move down
-                    for i in 0..4 {
-                        if y == 0 || cave.cave[y - 1][x + i] != '.' {
-                            break 'outer;
-                        }
-                    }
-                    c_ind += 1;
-                    y -= 1;
-                }
-
-                // Draw rock in resting position
-                for i in 0..4 {
-                    cave.cave[y][x + i] = '#';
-                }
-                cave.height = y as i32;
+                let y = cave.height + 4;
+                let x = 2;
+                let coords = vec![
+                    (y, x), (y, x + 1), (y, x + 2), (y, x + 3)
+                ];
+                (coords, y)
             },
             1 => {
-                // cross shaped rock
-                // y, x is the middle of the rock
-                let y = (cave.height + 5) as usize;
-                let x = 3 as usize;
-
-                let mut coords = vec![
+                // Cross shape rock
+                // y, x is the center of the rock
+                let y = cave.height + 5;
+                let x = 3;
+                let coords = vec![
                     (y, x), (y + 1, x), (y, x - 1), (y, x + 1), (y - 1, x)
                 ];
-
-                loop {
-                    if moves[c_ind] == '<' {
-                        let moved_coords = coords.iter().map(
-                            |c| {
-                                (c.0, c.1 - 1)
-                            }
-                        ).collect();
-                        if check_valid(cave.cave.clone(), &moved_coords) {
-                            coords = moved_coords;
-                        }
-                    } else {
-                        let moved_coords = coords.iter().map(
-                            |c| {
-                                (c.0, c.1 + 1)
-                            }
-                        ).collect();
-                        if check_valid(cave.cave.clone(), &moved_coords) {
-                            coords = moved_coords;
-                        }
-                    }
-
-                    let moved_coords = coords.iter()
-                        .map(|c| {
-                            (c.0 - 1, c.1)
-                        })
-                        .collect();
-
-                    if check_valid(cave.cave.clone(), &moved_coords) {
-                        c_ind += 1;
-                        coords = moved_coords;
-                    } else {
-                        break;
-                    }
-                }
-
-                cave.cave[y][x] = '#';
-                cave.cave[y + 1][x] = '#';
-                cave.cave[y][x - 1] = '#';
-                cave.cave[y][x + 1] = '#';
-                cave.cave[y - 1][x] = '#';
-
-                cave.height = (y + 1) as i32;
+                (coords, y + 1)
             },
             2 => {
-                // backwards L shaped rock
+                // Backwards L shape rock
                 // y, x is the corner of the rock
-                let y = (cave.height + 4) as usize;
+                let y = cave.height + 4;
                 let x = 4;
-                cave.cave[y][x] = '#';
-                cave.cave[y + 1][x] = '#';
-                cave.cave[y + 2][x] = '#';
-                cave.cave[y][x - 2] = '#';
-                cave.cave[y][x - 1] = '#';
-
-                cave.height = (y + 2) as i32;
+                let coords = vec![
+                    (y, x), (y + 1, x), (y + 2, x), (y, x - 2), (y, x - 1)
+                ];
+                (coords, y + 2)
             },
             3 => {
-                // straight line rock
+                // Vertical rock
                 // y, x is the bottom of the rock
-                let y = (cave.height + 4) as usize;
+                let y = cave.height + 4;
                 let x = 2;
-                for i in 0..4 {
-                    cave.cave[y + i][x] = '#';
-                }
-                cave.height = (y + 3) as i32;
+                let coords = vec![
+                    (y, x), (y + 1, x), (y + 2, x), (y + 3, x)
+                ];
+                (coords, y + 3)
             },
             4 => {
-                // square rock
-                // y, x is the bottom left corner of the rock
-                let y = (cave.height + 4) as usize;
+                // Square rock
+                // y, x is the bottom left corner
+                let y = cave.height + 4;
                 let x = 2;
-                cave.cave[y][x] = '#';
-                cave.cave[y][x + 1] = '#';
-                cave.cave[y + 1][x] = '#';
-                cave.cave[y + 1][x + 1] = '#';
-            
-                cave.height = (y + 1) as i32;
+                let coords = vec![
+                    (y, x), (y, x + 1), (y + 1, x), (y + 1, x + 1)
+                ];
+                (coords, y + 1)
             },
-            _ => {
-                panic!("Invalid rock type");
+            _ => panic!("Invalid rock type")
+        };
+
+        loop {
+            println!("{:?} {}", coords, moves[c_ind]);
+            if moves[c_ind] == '<' {
+                // move left
+                let moved_coords = coords.iter().map(
+                    |c| {
+                        (c.0, c.1 - 1)
+                    }
+                ).collect();
+                if check_valid(&cave.cave, &moved_coords) {
+                    coords = moved_coords;
+                }
+            } else {
+                // move right
+                let moved_coords = coords.iter().map(
+                    |c| {
+                        (c.0, c.1 + 1)
+                    }
+                ).collect();
+                if check_valid(&cave.cave, &moved_coords) {
+                    coords = moved_coords;
+                }
             }
+            c_ind += 1;
+            if c_ind == moves.len() {
+                c_ind = 0;
+            }
+            // Check if rock can move down
+            let moved_coords = coords.iter().map(
+                |c| {
+                    (c.0 - 1, c.1)
+                }
+            ).collect();
+            if check_valid(&cave.cave, &moved_coords) {
+                coords = moved_coords;
+                height -= 1;
+            } else {
+                break;
+            }
+            // print_cave(&cave);
+            // let mut s = String::from("");
+            // std::io::stdin().read_line(&mut s);
         }
+
+        cave.height = i32::max(cave.height, height);
         rock = (rock + 1) % 5;
+        rock_cnt += 1;
+        draw_rock(&mut cave.cave, &coords);
+        // print_cave(&cave);
+        // println!("{}", cave.height);
+        // let mut s = String::from("");
+        // std::io::stdin().read_line(&mut s);
     }
+    cave
 }
 
 fn main() {
     let path = env::args().nth(1).unwrap_or("input.txt".into());
     let input = fs::read_to_string(path).expect("File should exist");
-    let mut cave = Cave {
-        cave: vec![vec!['.'; 7]; 10],
-        height: -1,
-    };
-    process(&mut cave, input.chars().collect());
+    let cave = do_moves( input.chars().collect());
+    println!("ans {}", cave.height + 1);
+    let mut height = 0;
     print_cave(&cave);
+    for (h, row) in cave.cave.iter().enumerate().rev() {
+        if row.contains(&'#') {
+            height = h;
+            break;
+        }
+    }
+    println!("{height}");
 }
