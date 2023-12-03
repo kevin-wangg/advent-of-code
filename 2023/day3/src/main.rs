@@ -2,12 +2,25 @@ use std::{env, fs};
 use std::collections::VecDeque;
 
 fn is_engine(c: char) -> bool {
-    c != '.' && !c.is_numeric()
+    c == '*'
 }
 
-fn check_for_number(y: usize, x: usize, vis: &mut Vec<Vec<bool>>, grid: &Vec<Vec<char>>) -> i32 {
+fn get_adj_numbers(y: usize, x: usize, vis: &mut Vec<Vec<bool>>, grid: &Vec<Vec<char>>) -> Vec<i32> {
+    let mut ret = vec![];
+    check_for_number(y + 1, x, vis, grid, &mut ret);
+    check_for_number(y - 1, x, vis, grid, &mut ret);
+    check_for_number(y, x + 1, vis, grid, &mut ret);
+    check_for_number(y, x - 1, vis, grid, &mut ret);
+    check_for_number(y + 1, x + 1, vis, grid, &mut ret);
+    check_for_number(y + 1, x - 1, vis, grid, &mut ret);
+    check_for_number(y - 1, x + 1, vis, grid, &mut ret);
+    check_for_number(y - 1, x - 1, vis, grid, &mut ret);
+    ret
+}
+
+fn check_for_number(y: usize, x: usize, vis: &mut Vec<Vec<bool>>, grid: &Vec<Vec<char>>, accum: &mut Vec<i32>) {
     if !grid[y][x].is_numeric() || vis[y][x] {
-        return 0;
+        return;
     }
     let mut num = VecDeque::new();
     for i in x..grid[y].len() {
@@ -25,7 +38,7 @@ fn check_for_number(y: usize, x: usize, vis: &mut Vec<Vec<bool>>, grid: &Vec<Vec
         vis[y][i] = true;
     }
     let num_str: String = num.iter().collect();
-    num_str.parse().unwrap()
+    accum.push(num_str.parse().unwrap());
 }
 
 fn main() {
@@ -37,14 +50,10 @@ fn main() {
     for i in 0..grid.len() {
         for j in 0..grid[i].len() {
             if is_engine(grid[i][j]) {
-                ans += check_for_number(i + 1, j, &mut vis, &grid);
-                ans += check_for_number(i - 1, j, &mut vis, &grid);
-                ans += check_for_number(i, j + 1, &mut vis, &grid);
-                ans += check_for_number(i, j - 1, &mut vis, &grid);
-                ans += check_for_number(i + 1, j + 1, &mut vis, &grid);
-                ans += check_for_number(i + 1, j - 1, &mut vis, &grid);
-                ans += check_for_number(i - 1, j + 1, &mut vis, &grid);
-                ans += check_for_number(i - 1, j - 1, &mut vis, &grid);
+                let adj = get_adj_numbers(i, j, &mut vis, &grid);
+                if adj.len() == 2 {
+                    ans += adj[0] * adj[1];
+                }
             }
         }
     }
