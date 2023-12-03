@@ -1,15 +1,16 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::{env, fs};
 
-const WIDTH: i32 = 7;
+const WIDTH: i64 = 7;
+const NUM_ROCKS: i64 = 1_000_000_000_000;
 
 #[derive(Clone, Debug)]
 struct Rock {
-    pos: Vec<(i32, i32)>,
+    pos: Vec<(i64, i64)>,
 }
 
 impl Rock {
-    fn new(pos: Vec<(i32, i32)>) -> Self {
+    fn new(pos: Vec<(i64, i64)>) -> Self {
         Rock { pos }
     }
 
@@ -37,8 +38,11 @@ struct Cave {
     cur_rock: Option<Rock>,
     jets_ind: usize,
     jets: Vec<char>,
-    occupied: HashSet<(i32, i32)>,
-    height: i32,
+    occupied: HashSet<(i64, i64)>,
+    height: i64,
+    seen: HashMap<(Vec<i64>, usize, usize), (i64, i64)>,
+    top_n: i64,
+    offset: i64,
 }
 
 impl Cave {
@@ -50,6 +54,9 @@ impl Cave {
             jets: jets.chars().collect(),
             occupied: HashSet::new(),
             height: 0,
+            seen: HashMap::new(),
+            top_n: 30,
+            offset: 0,
         }
     }
 
@@ -58,7 +65,7 @@ impl Cave {
         let start = if full {
             0
         } else {
-            i32::max(0, self.height - 50)
+            i64::max(0, self.height - 60)
         };
 
         for i in (start..=self.height + 10).rev() {
@@ -133,20 +140,55 @@ impl Cave {
 
     #[allow(dead_code)]
     fn wait(&self) {
-        if self.height < 2675 {
-            return;
-        }
         let mut s = String::new();
         let _ = std::io::stdin().read_line(&mut s);
     }
-    fn drop_rock(&mut self) {
-        // self.print();
+
+    fn serialize_top_n_rows(&self) -> Vec<i64> {
+        if self.height < self.top_n {
+            panic!("Can't serialize top {}", self.top_n);
+        }
+        let mut ret = Vec::with_capacity(self.top_n as usize);
+        for i in self.height - self.top_n..=self.height {
+            let mut n = 0;
+            let mut c = 1;
+            for j in (0..7).rev() {
+                if self.occupied.contains(&(j, i)) {
+                    n += c;
+                }
+                c *= 2;
+            }
+            ret.push(n);
+        }
+        ret
+    }
+
+    fn drop_rock(&mut self, rock_cnt: &mut i64) {
         self.make_rock();
         while self.step() {}
         self.height = self.calculate_height();
+        if self.height >= self.top_n {
+            // Store top N rows, jets_ind, and rocks_ind with height
+            let key = (self.serialize_top_n_rows(), self.jets_ind, self.rock_ind);
+            if self.seen.contains_key(&key) {
+                let past_height = self.seen[&key].1;
+                let past_rock = self.seen[&key].0;
+                let remaining = NUM_ROCKS - *rock_cnt;
+                let diff = *rock_cnt - past_rock;
+                let times = remaining / diff;
+                if times > 0 {
+                    *rock_cnt += diff * times;
+                    self.offset = (self.height - past_height) * times; 
+                    return;
+                }
+            } else {
+                self.seen.insert(key, (*rock_cnt, self.height));
+            } 
+        }
+        *rock_cnt += 1;
     }
 
-    fn calculate_height(&self) -> i32 {
+    fn calculate_height(&self) -> i64 {
         self.occupied.iter().fold(0, |acc, &(_, y)| acc.max(y))
     }
 
@@ -184,6 +226,7 @@ impl Cave {
             self.cur_rock = Some(moved);
         } else {
             self.occupied.extend(self.cur_rock.clone().unwrap().pos.iter());
+            self.cur_rock = None;
             return false;
         }
         // return true to keep going
@@ -191,13 +234,18 @@ impl Cave {
     }
 }
 
+fn solve(input: &str) {
+    // let rock_cnt = NUM_ROCKS;
+    let mut cave = Cave::new(input.to_string());
+    let mut r = 0;
+    while r < NUM_ROCKS {
+        cave.drop_rock(&mut r);
+    }
+    println!("ans {}", cave.height + cave.offset - 1);
+}
+
 fn main() {
     let path = env::args().nth(1).unwrap_or("input.txt".to_string());
     let input = fs::read_to_string(path).expect("File should exist").trim().to_string();
-    let rock_cnt = 2022;
-    let mut cave = Cave::new(input.clone());
-    for _ in 0..rock_cnt {
-        cave.drop_rock();
-    }
-    println!("ans {}", cave.height);
+    solve(&input);
 }
