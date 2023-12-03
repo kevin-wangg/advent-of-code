@@ -166,10 +166,6 @@ impl Cave {
 
     fn step(&mut self) -> bool {
         let dir = self.get_dir();
-        // println!("dir {}", dir);
-        // self.print(false);
-        // thread::sleep(time::Duration::from_millis(200));
-        // self.wait();
         if dir == '<' {
             let moved = self.cur_rock.clone().unwrap().move_left();
             if !self.collision(&moved) {
@@ -183,18 +179,11 @@ impl Cave {
         } else {
             panic!("Invalid direction");
         }
-        // self.print(false);
-        // thread::sleep(time::Duration::from_millis(200));
-        // self.wait();
-
         let moved = self.cur_rock.clone().unwrap().move_down();
         if !self.collision(&moved) {
             self.cur_rock = Some(moved);
         } else {
             self.occupied.extend(self.cur_rock.clone().unwrap().pos.iter());
-            // println!("{:?}", self.occupied);
-            // self.cur_rock = None;
-            // return false to indicate rock has come to rest
             return false;
         }
         // return true to keep going
@@ -210,6 +199,5 @@ fn main() {
     for _ in 0..rock_cnt {
         cave.drop_rock();
     }
-    // cave.print(true);
     println!("ans {}", cave.height);
 }
