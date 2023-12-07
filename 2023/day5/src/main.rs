@@ -1,9 +1,26 @@
 use std::{env, fs};
 
-fn get_initial(s: &str) -> Vec<i32> {
+fn get_initial(s: &str) -> Vec<i64> {
     s.split_whitespace()
-        .filter_map(|w| w.parse::<i32>().ok())
+        .filter_map(|w| w.parse::<i64>().ok())
         .collect()
+}
+
+fn get_location(mut s: i64, maps: &Vec<Vec<Vec<i64>>>) -> i64 {
+    // println!("initial s {}", s);
+    for m in maps {
+        for r in m {
+            if s >= r[1] && s <= r[1] + r[2] {
+                // Within start range
+                let diff = s - r[1];
+                // Set s to new value
+                s = r[0] + diff;
+                // println!("changed s {}", s);
+                break;
+            }
+        }
+    }
+    s
 }
 
 fn main() {
@@ -15,14 +32,17 @@ fn main() {
         l.is_empty()
     }).collect();
     maps.remove(0);
-    let maps: Vec<Vec<Vec<i32>>> = maps.iter().map(|&m| {
+    let maps: Vec<Vec<Vec<i64>>> = maps.iter().map(|&m| {
         let m = &m[1..m.len()];
         m.iter().map(|&l| {
-            l.split_whitespace().map(|c| c.parse::<i32>().unwrap()).collect()
+            l.split_whitespace().map(|c| c.parse::<i64>().unwrap()).collect()
         }).collect()
     }).collect();
-    println!("{:?}", initial);
-    for m in &maps {
-        println!("{:?}", m);
+    let mut ans = 1e9 as i64;
+    for s in initial {
+        let l = get_location(s, &maps);
+        // println!("final loc: {}", l);
+        ans = ans.min(l);
     }
+    println!("{}", ans);
 }
