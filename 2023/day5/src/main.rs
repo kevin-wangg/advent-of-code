@@ -1,5 +1,5 @@
-use std::collections::VecDeque;
 use std::{env, fs};
+use std::collections::VecDeque;
 
 fn get_initial(s: &str) -> Vec<i64> {
     s.split_whitespace()
@@ -8,7 +8,7 @@ fn get_initial(s: &str) -> Vec<i64> {
 }
 
 fn convert(a: (i64, i64)) -> (i64, i64) {
-    (a.0, a.1 - a.0 + 1)
+    (a.0, a.1 - a.0 + 1) 
 }
 
 fn get_sections(src: (i64, i64), target: (i64, i64)) -> Option<((i64, i64), Vec<(i64, i64)>)> {
@@ -65,17 +65,14 @@ fn get_min_location(s: i64, l: i64, maps: &Vec<Vec<Vec<i64>>>) -> i64 {
     for m in maps {
         'outer: while let Some(front) = cur.pop_front() {
             for r in m {
-                match get_sections(front, (r[1], r[2])) {
-                    Some((intersect, rem)) => {
-                        for re in rem {
-                            cur.push_back(re);
-                        }
-                        let diff = r[1] - r[0];
-                        let new_sec = (intersect.0 - diff, intersect.1);
-                        next.push_back(new_sec);
-                        continue 'outer;
+                if let Some((intersect, rem)) = get_sections(front, (r[1], r[2])) {
+                    for re in rem {
+                        cur.push_back(re);
                     }
-                    None => {}
+                    let diff = r[1] - r[0];
+                    let new_sec = (intersect.0 - diff, intersect.1);
+                    next.push_back(new_sec);
+                    continue 'outer;
                 }
             }
             next.push_back(front);
@@ -93,23 +90,19 @@ fn main() {
     let input = fs::read_to_string(path).expect("File should exist");
     let input: Vec<&str> = input.lines().collect();
     let initial = get_initial(input[0]);
-    let mut maps: Vec<_> = input.split(|&l| l.is_empty()).collect();
+    let mut maps: Vec<_> = input.split(|&l| {
+        l.is_empty()
+    }).collect();
     maps.remove(0);
-    let maps: Vec<Vec<Vec<i64>>> = maps
-        .iter()
-        .map(|&m| {
-            let m = &m[1..m.len()];
-            m.iter()
-                .map(|&l| {
-                    l.split_whitespace()
-                        .map(|c| c.parse::<i64>().unwrap())
-                        .collect()
-                })
-                .collect()
-        })
-        .collect();
+    let maps: Vec<Vec<Vec<i64>>> = maps.iter().map(|&m| {
+        let m = &m[1..m.len()];
+        m.iter().map(|&l| {
+            l.split_whitespace().map(|c| c.parse::<i64>().unwrap()).collect()
+        }).collect()
+    }).collect();
     let mut ans = 1e9 as i64;
     for r in initial.chunks(2) {
         ans = ans.min(get_min_location(r[0], r[1], &maps));
     }
+    println!("ans {}", ans);
 }
