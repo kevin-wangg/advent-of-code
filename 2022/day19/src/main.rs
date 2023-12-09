@@ -92,23 +92,23 @@ fn rec(bp: &Blueprint, seen: &mut HashMap<State, i32>, s: State) -> i32 {
                 news.ore_amt -= bp.geode_robot_cost.0;
                 news.obs_amt -= bp.geode_robot_cost.1;
                 news.geo_rbt += 1;
-            },
+            }
             "obs" => {
                 news.ore_amt -= bp.obsidian_robot_cost.0;
                 news.clay_amt -= bp.obsidian_robot_cost.1;
                 news.obs_rbt += 1;
-            },
+            }
             "clay" => {
                 news.ore_amt -= bp.clay_robot_cost;
                 news.clay_rbt += 1;
-            },
+            }
             "ore" => {
                 news.ore_amt -= bp.ore_robot_cost;
                 news.ore_rbt += 1;
-            },
+            }
             "wait" => {
                 // don't make more robots
-            },
+            }
             _ => {
                 panic!("Invalid option");
             }
