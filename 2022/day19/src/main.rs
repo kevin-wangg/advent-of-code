@@ -59,29 +59,28 @@ impl State {
 }
 
 fn rec(bp: &Blueprint, seen: &mut HashMap<State, i32>, s: State) -> i32 {
-    // if s.time == 18 {
-    //     println!("{:?}", s);
-    // }
-    if s.time == 25 {
+    if s.time == 33 {
         return s.geo_amt;
     }
     if seen.contains_key(&s) {
         return seen[&s];
     }
     let mut options = vec![];
+    let mut skip = false;
     if s.ore_amt >= bp.geode_robot_cost.0 && s.obs_amt >= bp.geode_robot_cost.1 {
         options.push("geode");
+        skip = true;
     }
-    if s.ore_amt >= bp.obsidian_robot_cost.0 && s.clay_amt >= bp.obsidian_robot_cost.1 {
+    if !skip && s.ore_amt >= bp.obsidian_robot_cost.0 && s.clay_amt >= bp.obsidian_robot_cost.1 {
         options.push("obs");
     }
-    if s.ore_amt >= bp.clay_robot_cost {
+    if !skip && s.ore_amt >= bp.clay_robot_cost {
         options.push("clay");
     }
-    if s.ore_amt >= bp.ore_robot_cost {
+    if !skip && s.ore_amt >= bp.ore_robot_cost {
         options.push("ore");
     }
-    if options.len() < 4 {
+    if !skip && !(options.contains(&"clay") && options.contains(&"ore")) && options.len() < 4 {
         options.push("wait");
     }
     // println!("{:?}", options);
@@ -153,10 +152,17 @@ fn main() {
         ));
     }
 
+    let mut ans = 1;
+    let mut cnt = 0;
     for bp in blueprints {
+        if cnt == 3 {
+            break;
+        }
         let initial_state = State::start();
         let mut seen = HashMap::new();
-        let ans = rec(&bp, &mut seen, initial_state);
-        println!("max {}", ans);
+        let quality = rec(&bp, &mut seen, initial_state);
+        ans *= quality;
+        cnt += 1;
     }
+    println!("ans {}", ans);
 }
