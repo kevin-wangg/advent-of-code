@@ -1,96 +1,217 @@
 use std::{env, fs};
+use std::collections::VecDeque;
 
-fn valid_spot(y: usize, x: usize, grid: &Vec<Vec<char>>, vis: &Vec<Vec<bool>>, allowed: Vec<char>) -> bool {
-    if vis[y][x] {
-        return false;
-    }
-    for a in allowed {
-        if a == grid[y][x] {
-            return true;
+enum Move {
+    Up, Down, Left, Right
+}
+
+fn valid_move(m: Move, y: usize, x: usize, grid: &Vec<Vec<char>>, prev_y: usize, prev_x: usize) -> bool {
+    match m {
+        Move::Up => {
+            let allowed = vec!['|', 'F', '7'];
+            if y > 0 {
+                let testy = y - 1;
+                let testx = x;
+                if testy != prev_y || testx != prev_x {
+                    for c in allowed {
+                        if grid[testy][testx] == c {
+                            return true;
+                        }
+                    }
+                }
+            }
+        },
+        Move::Down => {
+            let allowed = vec!['|', 'L', 'J'];
+            if y < grid.len() {
+                let testy = y + 1;
+                let testx = x;
+                if testy != prev_y || testx != prev_x {
+                    for c in allowed {
+                        if grid[testy][testx] == c {
+                            return true;
+                        }
+                    }
+                }
+            }
+        },
+        Move::Left => {
+            let allowed = vec!['-', 'L', 'F'];
+            if x > 0 {
+                let testy = y;
+                let testx = x - 1;
+                if testy != prev_y || testx != prev_x {
+                    for c in allowed {
+                        if grid[testy][testx] == c {
+                            return true;
+                        }
+                    }
+                }
+            }
+        },
+        Move::Right => {
+            let allowed = vec!['-', 'J', '7'];
+            if x < grid[0].len() {
+                let testy = y;
+                let testx = x + 1;
+                if testy != prev_y || testx != prev_x {
+                    for c in allowed {
+                        if grid[testy][testx] == c {
+                            return true;
+                        }
+                    }
+                }
+            }
         }
     }
     false
 }
 
-fn loop_length(start_y: usize, start_x: usize, grid: &Vec<Vec<char>>, m: usize, n: usize) -> Option<usize> {
-    let mut vis = vec![vec![false; n]; m];
-    let mut cur_y = start_y;
-    let mut cur_x = start_x;
-    let mut first = true;
-    let mut length = 0;
-    while first || cur_y != start_y || cur_x != start_x {
-        println!("cur y {} cur x {}", cur_y, cur_x);
-        first = false;
-        vis[cur_y][cur_x] = true;
-        if length == 2 {
-            vis[start_y][start_x] = false;
-        }
-        match grid[cur_y][cur_x] {
+fn mark_loop(start_y: usize, start_x: usize, grid: &Vec<Vec<char>>) -> Option<Vec<Vec<bool>>> {
+    let mut y = start_y;
+    let mut x = start_x;
+    let mut prev_y = y;
+    let mut prev_x = x;
+    let m = grid.len();
+    let n = grid[0].len();
+    let mut marked = vec![vec![false; 2 * n + 4]; 2 * m + 4];
+    loop {
+        let tmpy = y;
+        let tmpx = x;
+        marked[2 * y + 2][2 * x + 2] = true;
+        match grid[y][x] {
             '|' => {
-                if cur_y > 0 && valid_spot(cur_y - 1, cur_x, grid, &vis, vec!['F', '7', '|']) {
-                    cur_y -= 1;
-                } else if cur_y < m - 1 && valid_spot(cur_y + 1, cur_x, grid, &vis, vec!['|', 'L', 'J']) {
-                    cur_y += 1;
+                if valid_move(Move::Up, y, x, &grid, prev_y, prev_x) {
+                    marked[2 * y - 1 + 2][ 2 * x + 2] = true;
+                    y -= 1;
+                } else if valid_move(Move::Down, y, x, &grid, prev_y, prev_x) {
+                    marked[2 * y + 1 + 2][ 2 * x + 2] = true;
+                    y += 1;
                 } else {
-                    println!("RETURN NONE");
                     return None;
                 }
             },
             '-' => {
-                if cur_x > 0 && valid_spot(cur_y, cur_x - 1, grid, &vis, vec!['-', 'F', 'L']) {
-                    cur_x -= 1;
-                } else if cur_x < n - 1 && valid_spot(cur_y, cur_x + 1, grid, &vis, vec!['-', 'J', '7']) {
-                    cur_x += 1;
+                if valid_move(Move::Left, y, x, &grid, prev_y, prev_x) {
+                    marked[2 * y + 2][2 * x - 1 + 2] = true;
+                    x -= 1;
+                } else if valid_move(Move::Right, y, x, &grid, prev_y, prev_x) {
+                    marked[2 * y + 2][2 * x + 1 + 2] = true;
+                    x += 1;
                 } else {
-                    println!("RETURN NONE");
-                    return None;
-                }
-            },
-            'L' => {
-                if cur_y > 0 && valid_spot(cur_y - 1, cur_x, grid, &vis, vec!['F', '7', '|']) {
-                    cur_y -= 1;
-                } else if cur_x < n - 1 && valid_spot(cur_y, cur_x + 1, grid, &vis, vec!['-', 'J', '7']) {
-                    cur_x += 1;
-                } else {
-                    println!("RETURN NONE");
-                    return None;
-                }
-            },
-            'J' => {
-                if cur_y > 0 && valid_spot(cur_y - 1, cur_x, grid, &vis, vec!['F', '7', '|']) {
-                    cur_y -= 1;
-                } else if cur_x > 0 && valid_spot(cur_y, cur_x - 1, grid, &vis, vec!['-', 'F', 'L']) {
-                    cur_x -= 1;
-                } else {
-                    println!("RETURN NONE");
-                    return None;
-                }
-            },
-            '7' => {
-                if cur_y < m - 1 && valid_spot(cur_y + 1, cur_x, grid, &vis, vec!['|', 'L', 'J']) {
-                    cur_y += 1;
-                } else if cur_x > 0 && valid_spot(cur_y, cur_x - 1, grid, &vis, vec!['-', 'F', 'L']) {
-                    cur_x -= 1;
-                } else {
-                    println!("RETURN NONE");
                     return None;
                 }
             },
             'F' => {
-                if cur_y < m - 1 && valid_spot(cur_y + 1, cur_x, grid, &vis, vec!['|', 'L', 'J']) {
-                    cur_y += 1;
-                } else if cur_x < n - 1 && valid_spot(cur_y, cur_x + 1, grid, &vis, vec!['-', 'J', '7']) {
-                    cur_x += 1;
+                if valid_move(Move::Down, y, x, &grid, prev_y, prev_x) {
+                    marked[2 * y + 1 + 2][ 2 * x + 2] = true;
+                    y += 1;
+                } else if valid_move(Move::Right, y, x, &grid, prev_y, prev_x) {
+                    marked[2 * y + 2][ 2 * x + 1 + 2] = true;
+                    x += 1;
                 } else {
-                    println!("RETURN NONE");
                     return None;
                 }
             },
-            _ => panic!("Invalid character found")
+            'J' => {
+                if valid_move(Move::Up, y, x, &grid, prev_y, prev_x) {
+                    marked[2 * y - 1 + 2][ 2 * x + 2] = true;
+                    y -= 1;
+                } else if valid_move(Move::Left, y, x, &grid, prev_y, prev_x) {
+                    marked[2 * y + 2][ 2 * x - 1 + 2] = true;
+                    x -= 1;
+                } else {
+                    return None;
+                }
+            },
+            'L' => {
+                if valid_move(Move::Up, y, x, &grid, prev_y, prev_x) {
+                    marked[2 * y - 1 + 2][ 2 * x + 2] = true;
+                    y -= 1;
+                } else if valid_move(Move::Right, y, x, &grid, prev_y, prev_x) {
+                    marked[2 * y + 2][ 2 * x + 1 + 2] = true;
+                    x += 1;
+                } else {
+                    return None;
+                }
+            },
+            '7' => {
+                if valid_move(Move::Down, y, x, &grid, prev_y, prev_x) {
+                    marked[2 * y + 1 + 2][ 2 * x + 2] = true;
+                    y += 1;
+                } else if valid_move(Move::Left, y, x, &grid, prev_y, prev_x) {
+                    marked[2 * y + 2][ 2 * x - 1 + 2] = true;
+                    x -= 1;
+                } else {
+                    return None;
+                }
+            },
+            _ => panic!("Invalid character")
         }
-        length += 1;
+        if y == start_y && x == start_x {
+            break;
+        }
+        prev_y = tmpy;
+        prev_x = tmpx;
     }
-    Some(length)
+    Some(marked)
+}
+
+fn count_outside(mut marked: Vec<Vec<bool>>) -> u32 {
+    let mut bfs: VecDeque<(usize, usize)> = VecDeque::new();
+    // assume 0,0 is outside
+    marked[2][2] = true;
+    bfs.push_back((0, 0));
+    while let Some((y, x)) = bfs.pop_front() {
+        if y > 0 {
+            if !marked[y - 1][x] {
+                marked[y - 1][x] = true;
+                bfs.push_back((y - 1, x));
+            }
+        }
+        if y < marked.len() - 1 {
+            if !marked[y + 1][x] {
+                marked[y + 1][x] = true;
+                bfs.push_back((y + 1, x));
+            }
+        }
+        if x > 0 {
+            if !marked[y][x - 1] {
+                marked[y][x - 1] = true;
+                bfs.push_back((y, x - 1));
+            }
+        }
+        if x < marked[0].len() - 1 {
+            if !marked[y][x + 1] {
+                marked[y][x + 1] = true;
+                bfs.push_back((y, x + 1));
+            }
+        }
+    }
+    let mut inside = 0;
+    for i in 0..marked.len() {
+        for j in 0..marked[0].len() {
+            if i % 2 == 0 && j % 2 == 0 {
+                if !marked[i][j] {
+                    inside += 1;
+                }
+            }
+        }
+    }
+    inside
+}
+
+fn print_marked(marked: &Vec<Vec<bool>>) {
+    for m in marked {
+        for c in m {
+            if *c {
+                print!("*\t");
+            } else {
+                print!(".\t");
+            }
+        }
+        println!();
+    }
 }
 
 fn main() {
@@ -99,28 +220,23 @@ fn main() {
     let mut grid: Vec<Vec<char>> = input.lines().map(|l| {
         l.chars().collect()
     }).collect();
-    let m = grid.len();
-    let n = grid[0].len();
-    let mut start_y = 0;
-    let mut start_x = 0;
-    'outer: for i in 0..m {
-        for j in 0..n {
+    let mut y = 0;
+    let mut x = 0;
+    'outer: for i in 0..grid.len() {
+        for j in 0..grid[i].len() {
             if grid[i][j] == 'S' {
-                start_y = i;
-                start_x = j;
+                y = i;
+                x = j;
                 break 'outer;
             }
         }
     }
     let possible = vec!['|', '-', 'L', 'J', '7', 'F'];
-    // S is '-'
     for p in possible {
-        grid[start_y][start_x] = p;
-        println!("setting to p {}", p);
-        match loop_length(start_y, start_x, &grid, m, n) {
-            Some(length) => {
-                println!("ans {}", length / 2);
-                println!("{}", p);
+        grid[y][x] = p;
+        match mark_loop(y, x, &grid) {
+            Some(marked) => {
+                println!("ans {}", count_outside(marked));
                 break;
             },
             None => {}
