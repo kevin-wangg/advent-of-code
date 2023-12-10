@@ -91,10 +91,10 @@ fn mark_loop(start_y: usize, start_x: usize, grid: &Vec<Vec<char>>) -> Option<Ve
         marked[2 * y + 2][2 * x + 2] = true;
         match grid[y][x] {
             '|' => {
-                if valid_move(Move::Up, y, x, &grid, prev_y, prev_x) {
+                if valid_move(Move::Up, y, x, grid, prev_y, prev_x) {
                     marked[2 * y - 1 + 2][2 * x + 2] = true;
                     y -= 1;
-                } else if valid_move(Move::Down, y, x, &grid, prev_y, prev_x) {
+                } else if valid_move(Move::Down, y, x, grid, prev_y, prev_x) {
                     marked[2 * y + 1 + 2][2 * x + 2] = true;
                     y += 1;
                 } else {
@@ -102,10 +102,10 @@ fn mark_loop(start_y: usize, start_x: usize, grid: &Vec<Vec<char>>) -> Option<Ve
                 }
             }
             '-' => {
-                if valid_move(Move::Left, y, x, &grid, prev_y, prev_x) {
+                if valid_move(Move::Left, y, x, grid, prev_y, prev_x) {
                     marked[2 * y + 2][2 * x - 1 + 2] = true;
                     x -= 1;
-                } else if valid_move(Move::Right, y, x, &grid, prev_y, prev_x) {
+                } else if valid_move(Move::Right, y, x, grid, prev_y, prev_x) {
                     marked[2 * y + 2][2 * x + 1 + 2] = true;
                     x += 1;
                 } else {
@@ -113,10 +113,10 @@ fn mark_loop(start_y: usize, start_x: usize, grid: &Vec<Vec<char>>) -> Option<Ve
                 }
             }
             'F' => {
-                if valid_move(Move::Down, y, x, &grid, prev_y, prev_x) {
+                if valid_move(Move::Down, y, x, grid, prev_y, prev_x) {
                     marked[2 * y + 1 + 2][2 * x + 2] = true;
                     y += 1;
-                } else if valid_move(Move::Right, y, x, &grid, prev_y, prev_x) {
+                } else if valid_move(Move::Right, y, x, grid, prev_y, prev_x) {
                     marked[2 * y + 2][2 * x + 1 + 2] = true;
                     x += 1;
                 } else {
@@ -124,10 +124,10 @@ fn mark_loop(start_y: usize, start_x: usize, grid: &Vec<Vec<char>>) -> Option<Ve
                 }
             }
             'J' => {
-                if valid_move(Move::Up, y, x, &grid, prev_y, prev_x) {
+                if valid_move(Move::Up, y, x, grid, prev_y, prev_x) {
                     marked[2 * y - 1 + 2][2 * x + 2] = true;
                     y -= 1;
-                } else if valid_move(Move::Left, y, x, &grid, prev_y, prev_x) {
+                } else if valid_move(Move::Left, y, x, grid, prev_y, prev_x) {
                     marked[2 * y + 2][2 * x - 1 + 2] = true;
                     x -= 1;
                 } else {
@@ -135,10 +135,10 @@ fn mark_loop(start_y: usize, start_x: usize, grid: &Vec<Vec<char>>) -> Option<Ve
                 }
             }
             'L' => {
-                if valid_move(Move::Up, y, x, &grid, prev_y, prev_x) {
+                if valid_move(Move::Up, y, x, grid, prev_y, prev_x) {
                     marked[2 * y - 1 + 2][2 * x + 2] = true;
                     y -= 1;
-                } else if valid_move(Move::Right, y, x, &grid, prev_y, prev_x) {
+                } else if valid_move(Move::Right, y, x, grid, prev_y, prev_x) {
                     marked[2 * y + 2][2 * x + 1 + 2] = true;
                     x += 1;
                 } else {
@@ -146,10 +146,10 @@ fn mark_loop(start_y: usize, start_x: usize, grid: &Vec<Vec<char>>) -> Option<Ve
                 }
             }
             '7' => {
-                if valid_move(Move::Down, y, x, &grid, prev_y, prev_x) {
+                if valid_move(Move::Down, y, x, grid, prev_y, prev_x) {
                     marked[2 * y + 1 + 2][2 * x + 2] = true;
                     y += 1;
-                } else if valid_move(Move::Left, y, x, &grid, prev_y, prev_x) {
+                } else if valid_move(Move::Left, y, x, grid, prev_y, prev_x) {
                     marked[2 * y + 2][2 * x - 1 + 2] = true;
                     x -= 1;
                 } else {
