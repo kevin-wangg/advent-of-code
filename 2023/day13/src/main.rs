@@ -15,9 +15,9 @@ fn cols_equal(grid: &Vec<Vec<char>>, i: usize, j: usize) -> bool {
     true
 }
 
-fn horizontal(grid: &Vec<Vec<char>>) -> Option<usize> {
+fn horizontal(grid: &Vec<Vec<char>>, exclude: &Vec<usize>) -> Option<usize> {
     for i in 0..grid.len() - 1 {
-        if rows_equal(grid, i, i + 1) {
+        if rows_equal(grid, i, i + 1) && !exclude.contains(&i) {
             let mut l = i;
             let mut r = i + 1;
             loop {
@@ -36,9 +36,9 @@ fn horizontal(grid: &Vec<Vec<char>>) -> Option<usize> {
     None
 }
 
-fn vertical(grid: &Vec<Vec<char>>) -> Option<usize> {
+fn vertical(grid: &Vec<Vec<char>>, exclude: &Vec<usize>) -> Option<usize> {
     for i in 0..grid[0].len() - 1 {
-        if cols_equal(grid, i, i + 1) {
+        if cols_equal(grid, i, i + 1) && !exclude.contains(&i) {
             let mut l = i;
             let mut r = i + 1;
             loop {
@@ -57,27 +57,42 @@ fn vertical(grid: &Vec<Vec<char>>) -> Option<usize> {
     None
 }
 
-fn reflection(grid: &Vec<Vec<char>>) -> usize {
-    if let Some(line) = horizontal(grid) {
-        return HORIZONTAL_MUL * (line + 1);
-    }
-
-    if let Some(line) = vertical(grid) {
-        return line + 1;
-    }
-    panic!("Grid has no reflections");
-
-}
-
 fn main() {
     let path = env::args().nth(1).unwrap_or("input.txt".to_string());
     let input = fs::read_to_string(path).expect("File should exist");
     let mut ans = 0;
-    for grid in input.split("\n\n") {
-        let grid: Vec<Vec<char>> = grid.lines().map(|l| {
+    'outer: for grid in input.split("\n\n") {
+        let mut grid: Vec<Vec<char>> = grid.lines().map(|l| {
             l.chars().collect()
         }).collect();
-        ans += reflection(&grid);
+        let mut exclude_vert = vec![];
+        let mut exclude_horz = vec![];
+        if let Some(line) = horizontal(&grid, &vec![]) {
+            exclude_horz.push(line);
+        } else if let Some(line) = vertical(&grid, &vec![]) {
+            exclude_vert.push(line);
+        } else {
+            panic!("No reflection found");
+        }
+        for i in 0..grid.len() {
+            for j in 0..grid[i].len() {
+                let tmp = grid[i][j];
+                if grid[i][j] == '.' {
+                    grid[i][j] = '#';
+                } else {
+                    grid[i][j] = '.';
+                }
+                if let Some(line) = horizontal(&grid, &exclude_horz) {
+                    ans += HORIZONTAL_MUL * (line + 1);
+                    continue 'outer;
+                } else if let Some(line) = vertical(&grid, &exclude_vert) {
+                    ans += line + 1;
+                    continue 'outer;
+                }
+                grid[i][j] = tmp;
+            }
+        }
+        panic!("No second reflection found");
     }
     println!("ans {}", ans);
 }
