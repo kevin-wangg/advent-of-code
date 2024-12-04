@@ -41,6 +41,6 @@ fn part2(input: &str) {
 fn main() {
     let path = env::args().nth(1).unwrap_or("input.txt".to_string());
     let input = fs::read_to_string(path).expect("File should exists");
-    // part1(&input);
+    part1(&input);
     part2(&input);
 }
