@@ -1,10 +1,11 @@
 use std::env;
 use std::fs;
+use std::io;
 
 // const WIDTH: i32 = 11;
-// const HEIGHT: i32 = 7; 
+// const HEIGHT: i32 = 7;
 const WIDTH: i32 = 101;
-const HEIGHT: i32 = 103; 
+const HEIGHT: i32 = 103;
 
 const TIME: i32 = 100;
 
@@ -17,17 +18,43 @@ struct Robot {
 }
 
 fn display_grid(robots: &[Robot]) {
-    let mut grid = vec![vec!['.'; WIDTH as usize]; HEIGHT as usize];
+    let mut grid = vec![vec![0; WIDTH as usize]; HEIGHT as usize];
     for robot in robots {
-        grid[robot.y as usize][robot.x as usize] = '*';
+        grid[robot.y as usize][robot.x as usize] += 1;
     }
     for i in 0..grid.len() {
         for j in 0..grid[i].len() {
-            print!("{}", grid[i][j]);
+            if grid[i][j] == 0 {
+                print!(".");
+            } else {
+                print!("{}", grid[i][j]);
+            }
         }
         println!();
-
     }
+}
+
+fn contains_straight_line(robots: &[Robot]) -> bool {
+    let mut grid = vec![vec![0; WIDTH as usize]; HEIGHT as usize];
+    for robot in robots {
+        grid[robot.y as usize][robot.x as usize] += 1;
+    }
+    let length = 5;
+    for i in 0..grid.len() - length {
+        for j in 0..grid[i].len() {
+            let mut ok = true;
+            for k in 0..length {
+                if grid[i + k][j] == 0 {
+                    ok = false;
+                    break;
+                }
+            }
+            if ok {
+                return true;
+            }
+        }
+    }
+    false
 }
 
 fn solve(input: &str) {
@@ -46,30 +73,42 @@ fn solve(input: &str) {
         });
     }
 
-    let mut q1 = 0;
-    let mut q2 = 0;
-    let mut q3 = 0;
-    let mut q4 = 0;
+    let mut time = 0;
 
     let midx = WIDTH / 2;
     let midy = HEIGHT / 2;
 
-    for robot in robots {
-        let x = (robot.x + (robot.vx * TIME)).rem_euclid(WIDTH);
-        let y = (robot.y + (robot.vy * TIME)).rem_euclid(HEIGHT);
-        
-        if x < midx && y < midy {
-            q1 += 1;
-        } else if x < midx && y > midy {
-            q2 += 1;
-        } else if x > midx && y < midy {
-            q3 += 1;
-        } else if x > midx && y > midy {
-            q4 += 1;
-        }
-    }
+    loop {
+        println!("time {time}");
 
-    println!("ans {}", q1 * q2 * q3 * q4);
+        let mut q1: i32 = 0;
+        let mut q2: i32 = 0;
+        let mut q3 = 0;
+        let mut q4 = 0;
+
+        for robot in &mut robots {
+            robot.x = (robot.x + robot.vx).rem_euclid(WIDTH);
+            robot.y = (robot.y + robot.vy).rem_euclid(HEIGHT);
+
+            if robot.x < midx && robot.y < midy {
+                q1 += 1;
+            } else if robot.x < midx && robot.y > midy {
+                q2 += 1;
+            } else if robot.x > midx && robot.y < midy {
+                q3 += 1;
+            } else if robot.x > midx && robot.y > midy {
+                q4 += 1;
+            }
+        }
+
+        if contains_straight_line(&robots) {
+            display_grid(&robots);
+            let mut buf = String::new();
+            let _ = io::stdin().read_line(&mut buf);
+        }
+
+        time += 1;
+    }
 }
 
 fn main() {
