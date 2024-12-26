@@ -1,6 +1,8 @@
 mod default_map;
 
+use std::collections::HashSet;
 use std::env;
+use std::fmt::LowerExp;
 use std::fs;
 use std::i32;
 
@@ -40,7 +42,21 @@ fn dfs(
     y: usize,
     x: usize,
     dir: Dir,
+    path: HashSet<(usize, usize)>,
+    lowest_score: &mut i32,
+    tiles: &mut HashSet<(usize, usize)>,
 ) {
+    if grid[y][x] == 'E' {
+        if scores[(y, x, dir)] < *lowest_score {
+            *lowest_score = scores[(y, x, dir)];
+            tiles.clear();
+            tiles.extend(path);
+        } else if scores[(y, x, dir)] == *lowest_score {
+            tiles.extend(path);
+        }
+        return;
+    }
+
     let forward = match dir {
         North => (y - 1, x),
         East => (y, x + 1),
@@ -50,9 +66,20 @@ fn dfs(
 
     if grid[forward.0][forward.1] != '#' {
         let cur_score = scores[(y, x, dir)];
-        if cur_score + 1 < scores.get_or_default((forward.0, forward.1, dir), i32::MAX) {
+        if cur_score + 1 <= scores.get_or_default((forward.0, forward.1, dir), i32::MAX) {
             scores[(forward.0, forward.1, dir)] = cur_score + 1;
-            dfs(grid, scores, forward.0, forward.1, dir);
+            let mut new_path = path.clone();
+            new_path.insert(forward);
+            dfs(
+                grid,
+                scores,
+                forward.0,
+                forward.1,
+                dir,
+                new_path,
+                lowest_score,
+                tiles,
+            );
         }
     }
 
@@ -79,9 +106,20 @@ fn dfs(
 
         if grid[next.0][next.1] != '#' {
             let cur_score = scores[(y, x, dir)];
-            if cur_score + 1001 < scores.get_or_default((next.0, next.1, new_dir), i32::MAX) {
+            if cur_score + 1001 <= scores.get_or_default((next.0, next.1, new_dir), i32::MAX) {
                 scores[(next.0, next.1, new_dir)] = cur_score + 1001;
-                dfs(grid, scores, next.0, next.1, new_dir);
+                let mut new_path = path.clone();
+                new_path.insert(next);
+                dfs(
+                    grid,
+                    scores,
+                    next.0,
+                    next.1,
+                    new_dir,
+                    new_path,
+                    lowest_score,
+                    tiles,
+                );
             }
         }
     }
@@ -103,20 +141,33 @@ fn solve(input: &str) {
         }
     }
 
+    let mut lowest_score = i32::MAX;
+    let mut tiles = HashSet::new();
+    let mut initial_path = HashSet::new();
+    initial_path.insert(start);
     min_score[(start.0, start.1, Dir::East)] = 0;
-    dfs(&grid, &mut min_score, start.0, start.1, Dir::East);
-
-    let ans = i32::min(
-        i32::min(
-            min_score.get_or_default((end.0, end.1, North), i32::MAX),
-            min_score.get_or_default((end.0, end.1, East), i32::MAX),
-        ),
-        i32::min(
-            min_score.get_or_default((end.0, end.1, South), i32::MAX),
-            min_score.get_or_default((end.0, end.1, West), i32::MAX),
-        ),
+    dfs(
+        &grid,
+        &mut min_score,
+        start.0,
+        start.1,
+        Dir::East,
+        initial_path,
+        &mut lowest_score,
+        &mut tiles,
     );
-    println!("ans {ans}");
+
+    // let ans = i32::min(
+    //     i32::min(
+    //         min_score.get_or_default((end.0, end.1, North), i32::MAX),
+    //         min_score.get_or_default((end.0, end.1, East), i32::MAX),
+    //     ),
+    //     i32::min(
+    //         min_score.get_or_default((end.0, end.1, South), i32::MAX),
+    //         min_score.get_or_default((end.0, end.1, West), i32::MAX),
+    //     ),
+    // );
+    println!("ans {}", tiles.len());
 }
 
 fn main() {
