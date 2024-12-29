@@ -1,7 +1,7 @@
-use std::collections::HashSet;
 use std::env;
 use std::fs;
 
+#[derive(Clone)]
 struct StateMachine {
     a: i64,
     b: i64,
@@ -166,7 +166,27 @@ fn check_nth_output(mut machine: StateMachine, candidate: &str, n: usize) -> boo
             break;
         }
     }
-    machine.output[n] == machine.program[n]
+
+    if n >= machine.output.len() {
+        false
+    } else {
+        for i in 0..=n {
+            if machine.output[i] != machine.program[i] {
+                return false;
+            }
+        }
+        true
+    }
+}
+
+fn generate_binary_strings(length: usize) -> Vec<String> {
+    let max_val = 1 << length;
+    let mut ret = Vec::new();
+    for n in 0..max_val {
+        let string = format!("{:0length$b}", n, length = length);
+        ret.push(string);
+    }
+    ret
 }
 
 fn solve(input: &str) {
@@ -175,7 +195,7 @@ fn solve(input: &str) {
     let program = parse_program(input[1]);
     let registers = parse_registers(registers);
 
-    let mut machine = StateMachine {
+    let machine = StateMachine {
         a: registers.0,
         b: registers.1,
         c: registers.2,
@@ -184,52 +204,36 @@ fn solve(input: &str) {
         output: Vec::new(),
     };
 
-    let mut candidate: i64 = 8_i64.pow(15);
+    let mut possible_candidates = Vec::new();
+    let mut valid_candidates = Vec::new();
 
-    let mut tmp = candidate;
+    for i in 0..16 {
+        if i == 0 {
+            possible_candidates.extend(generate_binary_strings(10));
+        } else {
+            let mut new_candidates = Vec::new();
+            for c in &valid_candidates {
+                for s in generate_binary_strings(3) {
+                    let new_string = format!("{}{}", s, c);
+                    new_candidates.push(new_string);
+                }
+            }
+            possible_candidates = new_candidates;
+        }
 
-    let mut possible_outputs = HashSet::new();
+        valid_candidates.clear();
 
-    loop {
-        machine.a = candidate;
-        machine.b = registers.1;
-        machine.c = registers.2;
-        machine.pc = 0;
-        machine.output.clear();
-
-        loop {
-            let res = machine.do_instruction();
-            if res.is_none() {
-                break;
+        for c in &possible_candidates {
+            if check_nth_output(machine.clone(), c, i) {
+                valid_candidates.push(c.clone());
             }
         }
-
-        possible_outputs.insert(machine.output.clone());
-
-        if machine.output[0] == 2
-            && machine.output[1] == 4
-            && machine.output[2] == 1
-            && machine.output[3] == 1
-            && machine.output[4] == 7
-            && machine.output[5] == 5
-        {
-            println!("===========");
-            println!("candidate: {}", candidate);
-            println!("candidate binary: {:b}", candidate);
-            println!("diff: {}", candidate - tmp);
-            tmp = candidate;
-            machine.print_state();
-            println!("possible outputs size {}", possible_outputs.len());
-        }
-
-        if machine.output == program {
-            break;
-        }
-
-        candidate += 1;
     }
 
-    println!("ans {}", candidate);
+    possible_candidates.sort();
+
+    let ans = i64::from_str_radix(&possible_candidates[0], 2).unwrap();
+    println!("ans {}", ans);
 }
 
 fn main() {
