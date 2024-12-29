@@ -6,16 +6,9 @@ use std::fs;
 const LENGTH: usize = 71;
 
 // const BYTES: usize = 12;
-const BYTES: usize = 1024;
+// const BYTES: usize = 1024;
 
-fn solve(input: &str) {
-    let mut grid = vec![vec!['.'; LENGTH]; LENGTH];
-
-    for line in input.lines().take(BYTES) {
-        let coord: Vec<usize> = line.split(',').map(|n| n.parse().unwrap()).collect();
-        grid[coord[1]][coord[0]] = '#';
-    }
-
+fn has_path(grid: &[Vec<char>]) -> bool {
     let mut queue = VecDeque::new();
     let mut distance = vec![vec![-1; LENGTH]; LENGTH];
     queue.push_back((0, 0));
@@ -40,8 +33,22 @@ fn solve(input: &str) {
         }
     }
 
-    let ans = distance[LENGTH - 1][LENGTH - 1];
-    println!("ans {}", ans);
+    distance[LENGTH - 1][LENGTH - 1] != -1 
+}
+
+fn solve(input: &str) {
+    let mut grid = vec![vec!['.'; LENGTH]; LENGTH];
+
+    for line in input.lines() {
+        let coord: Vec<usize> = line.split(',').map(|n| n.parse().unwrap()).collect();
+        grid[coord[1]][coord[0]] = '#';
+
+        if !has_path(&grid) {
+            println!("{}", line);
+            break;
+        }
+    }
+
 }
 
 fn main() {
