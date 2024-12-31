@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::env;
 use std::fs;
 
@@ -179,24 +180,47 @@ fn enter_sequence(seq: &str, num_pad: bool) -> String {
     ret
 }
 
-fn solve(input: &str) {
-    let mut ans = 0;
-    for code in input.lines() {
-        let seq1 = num_pad(code);
-        let mut min = usize::MAX;
-        for s in &seq1 {
-            let seq2 = key_pad(s);
-            for s in &seq2 {
-                let seq3 = key_pad(s);
-                for s in &seq3 {
-                    min = min.min(s.len());
+const NUM_ROBOTS: u32 = 26;
+
+fn rec(input: &str, times: u32, is_num_pad: bool, seen: &mut HashMap<(String, u32), usize>) -> usize {
+    if times == NUM_ROBOTS {
+        input.len()
+    } else if seen.contains_key(&(input.to_string(), times)) {
+        seen[&(input.to_string(), times)]
+    }
+    else {
+        let mut ret = usize::MAX;
+        if is_num_pad {
+            let seq = num_pad(input);
+            for s in &seq {
+                ret = ret.min(rec(s, times + 1, false, seen));
+            }
+        } else {
+            let seq = key_pad(input);
+            for s in &seq {
+                let mut len = 0;
+                for slice in s.split_inclusive('A') {
+                    len += rec(slice, times + 1, false, seen);
                 }
+                ret = ret.min(len);
             }
         }
+        seen.insert((input.to_string(), times), ret);
+        ret
+    }
+}
+
+fn solve(input: &str) {
+    let mut ans = 0;
+    let mut seen = HashMap::new();
+    for code in input.lines() {
+        let min_len = rec(code, 0, true, &mut seen);
+
         let mut code = code.to_string();
         code.pop();
         let num = code.parse::<usize>().unwrap();
-        ans += num * min;
+
+        ans += num * min_len;
     }
     println!("ans {}", ans);
 }
