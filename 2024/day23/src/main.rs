@@ -29,7 +29,7 @@ fn bron_kerbosch(
             if adj_list[&node.as_ref()].contains(&considered.as_ref()) {
                 new_x.insert(considered.clone());
             }
-        } 
+        }
         bron_kerbosch(new_r, new_p, new_x, adj_list, cliques);
 
         x.insert(node.clone());
@@ -71,7 +71,7 @@ fn solve(input: &str) {
             max_len = clique.len();
         }
     }
-    
+
     println!("ans {}", ans);
 }
 
