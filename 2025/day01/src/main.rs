@@ -35,7 +35,7 @@ fn solve2(input: &str) {
         let dir = line.chars().next().unwrap();
         let mut times = line[1..].parse::<i32>().unwrap();
         ans += times / 100;
-        times = times % 100;
+        times %= 100;
         let mut pass_zero = false;
         let at_zero = cur == 0;
         if dir == 'L' {
